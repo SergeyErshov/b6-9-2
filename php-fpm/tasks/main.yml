@@ -1,0 +1,98 @@
+---
+# tasks file for php-fpm
+- name: install php and dependences
+  apt:
+    pkg:
+      - php
+      - php-cli 
+      - php-fpm 
+      - php-json 
+      - php-mysql
+      - php-zip 
+      - php-gd
+      - php-mbstring
+      - php-curl 
+      - php-xml 
+      - php-pear 
+      - php-bcmath
+    update_cache: true
+
+- name: starting php-fpm service
+  service:
+    name: php8.1-fpm.service
+    state: started
+
+- name: enable php in nginx config
+  lineinfile:
+    path: "{{ nginx_path }}"
+    regexp: '.index\.nginx-debian\.html;$'
+    line: 'index index.php index.html index.htm index.nginx-debian.html;'
+
+- name: set index.php as root
+  lineinfile:
+    path: "{{ nginx_path }}"
+    regexp: '.\$uri/ =404;$'
+    line: 'try_files $uri $uri/ /index.php$is_args$args =404;'
+
+
+- name: configure nginx for work with php-fpm
+  blockinfile:
+    path: "{{ nginx_path }}"
+    backup: true
+    marker: "#<!-- {mark} ANSIBLE MANAGED BLOCK -->"
+    insertafter: '# pass PHP scripts to FastCGI server'
+    block: |
+      location ~ \.php$ {  
+      fastcgi_pass unix:/run/php/php8.1-fpm.sock;   
+      fastcgi_index index.php;
+      fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+      include /etc/nginx/fastcgi_params; 
+      }
+
+- name: create index.php
+  file:
+    path: /var/www/html/index.php
+    owner: www-data
+    group: www-data
+    mode: '0644'
+    state: touch
+  
+- name: Flush handlers (for multiply tasks)
+  meta: flush_handlers
+
+- name: add content in index.php
+  lineinfile:
+    path: /var/www/html/index.php
+    regexp: '.<\?php phpinfo();\?>$'
+    line: '<?php phpinfo();?>'
+  notify:
+    - restart nginx
+
+# moving DocumentRoot
+
+- name: copy files from old root location to new
+  copy:
+    src: /var/www/html/
+    dest: /opt/nginx/ansible/
+    directory_mode: true
+  tags:
+    - reconfig_root
+
+- name: Flush handlers (for multiply tasks)
+  meta: flush_handlers
+  tags:
+    - reconfig_root
+
+- name: editing nginx config
+  lineinfile:
+    path: "{{ nginx_path }}"
+    regexp: '.root /var/www/html;$'
+    line: 'root /opt/nginx/ansible;'
+    backrefs: true
+  notify:
+    - restart nginx
+  tags:
+    - reconfig_root
+
+
+

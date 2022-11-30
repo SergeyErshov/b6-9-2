@@ -1,0 +1,3 @@
+---
+# vars file for php-fpm
+nginx_path: '/etc/nginx/sites-available/default'

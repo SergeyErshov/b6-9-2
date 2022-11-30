@@ -1,0 +1,7 @@
+---
+- hosts: sf_b6
+  gather_facts: false
+  become: true
+  roles:
+    - php-fpm
+
