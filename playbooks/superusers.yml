@@ -1,0 +1,29 @@
+---
+  - hosts: sf_b6
+    gather_facts: false
+    become: true # execute all command with root privilages
+    tasks:
+
+      - name: create new user2
+        command: 'useradd -m user2'
+
+      - name: create new user3
+        command: 'useradd -m user3'
+
+      - name: add root-privilages for user2
+        lineinfile:
+          path: /etc/sudoers
+          state: present
+          regexp: '^user2 ALL='
+          line: 'user2 ALL=(ALL) ALL'
+          validate: /usr/sbin/visudo -cf %s
+
+      - name: add root-privilages for user3
+        lineinfile:
+          path: /etc/sudoers
+          state: present
+          regexp: '^user3 ALL='
+          line: 'user3 ALL=(ALL) ALL'
+          validate: /usr/sbin/visudo -cf %s
+
+          

@@ -1,0 +1,32 @@
+---
+# tasks file for dnsmasq
+- name: stoping default resolver
+  service:
+    name: systemd-resolved
+    state: stopped
+
+- name: disable autostart systemd-resolved
+  service:
+    name: systemd-resolved
+    enabled: false
+
+- name: remove resolv.conf wih symlinc
+  file:
+    path: /etc/resolv.conf
+    state: absent
+
+- name: copy new resolf.conf with local and google dns service
+  copy:
+    src: /home/esm/ansible/playbooks/common/resolv.conf
+    dest: /etc/resolv.conf  
+    remote_src: true
+
+- name: install package from repo
+  apt:
+    name: dnsmasq
+    update_cache: true
+
+- name: restart dnsmasq service
+  service:
+    name: dnsmasq
+    state: restarted
